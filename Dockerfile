@@ -95,7 +95,7 @@ COPY --from=workspace-deps /out/openclaw-required-platform-packages /tmp/opencla
 
 # ── Production dependencies ────────────────────────────────────
 FROM dependency-inputs AS production-deps
-RUN --mount=type=cache,id=openclaw-pnpm-store,target=/root/.local/share/pnpm/store,sharing=locked \
+RUN --mount=type=cache,id=s/73d1f49a-b92c-429e-a79e-0151576b0875-/root/.local/share/pnpm/store,target=/root/.local/share/pnpm/store,sharing=locked \
     set -eu; set -- --filter . --filter ./ui --filter './packages/*'; \
     while IFS= read -r ext; do \
       set -- "$@" --filter "./${OPENCLAW_BUNDLED_PLUGIN_DIR}/$ext"; \
@@ -122,7 +122,7 @@ COPY --from=bun-binary /usr/local/bin/bun /usr/local/bin/bun
 # Docker builds on small VMs may otherwise fail with "Killed" (exit 137).
 # Source asset preparation builds external plugins before runtime pruning.
 # Its build dependencies stay in this disposable stage; production remains filtered.
-RUN --mount=type=cache,id=openclaw-pnpm-store,target=/root/.local/share/pnpm/store,sharing=locked \
+RUN --mount=type=cache,id=s/73d1f49a-b92c-429e-a79e-0151576b0875-/root/.local/share/pnpm/store,target=/root/.local/share/pnpm/store,sharing=locked \
     NODE_OPTIONS=--max-old-space-size=2048 pnpm install --frozen-lockfile \
       --config.supportedArchitectures.os=linux \
       --config.supportedArchitectures.cpu="$(node -p 'process.arch')" \
@@ -259,8 +259,8 @@ WORKDIR /app
 # spawns `ssh` directly, and bookworm-slim does not provide it.
 # Apply current Debian point-release security fixes even when the pinned base
 # digest predates them, without waiting for a base-digest refresh.
-RUN --mount=type=cache,id=openclaw-bookworm-apt-cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,id=openclaw-bookworm-apt-lists,target=/var/lib/apt,sharing=locked \
+RUN --mount=type=cache,id=s/73d1f49a-b92c-429e-a79e-0151576b0875-/var/cache/apt,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,id=s/73d1f49a-b92c-429e-a79e-0151576b0875-/var/lib/apt,target=/var/lib/apt,sharing=locked \
     apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get dist-upgrade -y && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
@@ -302,8 +302,8 @@ COPY --from=runtime-assets --chown=node:node /app/${OPENCLAW_BUNDLED_PLUGIN_DIR}
 COPY --from=runtime-assets --chown=node:node /app/skills ./skills
 COPY --from=runtime-assets --chown=node:node /app/docs ./docs
 COPY --from=runtime-assets --chown=node:node /app/qa ./qa
-RUN --mount=from=dependency-inputs,source=/app/scripts/docker/verify-fs-safe-native.mjs,target=/tmp/verify-fs-safe-native.mjs \
-    node /tmp/verify-fs-safe-native.mjs --package-root /app --mode require
+COPY --from=dependency-inputs /app/scripts/docker/verify-fs-safe-native.mjs /tmp/verify-fs-safe-native.mjs
+RUN node /tmp/verify-fs-safe-native.mjs --package-root /app --mode require
 
 # Validate the three version surfaces in every release-built runtime variant.
 ARG OPENCLAW_DOCKER_BUILD_VERSION
@@ -340,8 +340,8 @@ RUN install -d -m 0755 "$COREPACK_HOME" && \
 ARG OPENCLAW_IMAGE_APT_PACKAGES
 ARG OPENCLAW_DOCKER_APT_PACKAGES=""
 ENV PATH="/home/node/.local/bin:${PATH}"
-RUN --mount=type=cache,id=openclaw-bookworm-apt-cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,id=openclaw-bookworm-apt-lists,target=/var/lib/apt,sharing=locked \
+RUN --mount=type=cache,id=s/73d1f49a-b92c-429e-a79e-0151576b0875-/var/cache/apt,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,id=s/73d1f49a-b92c-429e-a79e-0151576b0875-/var/lib/apt,target=/var/lib/apt,sharing=locked \
     packages="${OPENCLAW_IMAGE_APT_PACKAGES:-$OPENCLAW_DOCKER_APT_PACKAGES}"; \
     if [ -n "$packages" ]; then \
       apt-get update && \
@@ -351,8 +351,8 @@ RUN --mount=type=cache,id=openclaw-bookworm-apt-cache,target=/var/cache/apt,shar
 # Install additional Python packages needed by your plugins or skills.
 # Example: docker build --build-arg OPENCLAW_IMAGE_PIP_PACKAGES="requests humanize" .
 ARG OPENCLAW_IMAGE_PIP_PACKAGES=""
-RUN --mount=type=cache,id=openclaw-bookworm-apt-cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,id=openclaw-bookworm-apt-lists,target=/var/lib/apt,sharing=locked \
+RUN --mount=type=cache,id=s/73d1f49a-b92c-429e-a79e-0151576b0875-/var/cache/apt,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,id=s/73d1f49a-b92c-429e-a79e-0151576b0875-/var/lib/apt,target=/var/lib/apt,sharing=locked \
     if [ -n "$OPENCLAW_IMAGE_PIP_PACKAGES" ]; then \
       if ! python3 -m pip --version >/dev/null 2>&1; then \
         apt-get update && \
@@ -367,8 +367,8 @@ RUN --mount=type=cache,id=openclaw-bookworm-apt-cache,target=/var/cache/apt,shar
 # Must run after node_modules COPY so playwright-core is available.
 ARG OPENCLAW_INSTALL_BROWSER=""
 ENV PLAYWRIGHT_BROWSERS_PATH=/home/node/.cache/ms-playwright
-RUN --mount=type=cache,id=openclaw-bookworm-apt-cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,id=openclaw-bookworm-apt-lists,target=/var/lib/apt,sharing=locked \
+RUN --mount=type=cache,id=s/73d1f49a-b92c-429e-a79e-0151576b0875-/var/cache/apt,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,id=s/73d1f49a-b92c-429e-a79e-0151576b0875-/var/lib/apt,target=/var/lib/apt,sharing=locked \
     if [ -n "$OPENCLAW_INSTALL_BROWSER" ]; then \
       apt-get update && \
       DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends xvfb && \
@@ -384,8 +384,8 @@ RUN --mount=type=cache,id=openclaw-bookworm-apt-cache,target=/var/cache/apt,shar
 # Required for agents.defaults.sandbox to function in Docker deployments.
 ARG OPENCLAW_INSTALL_DOCKER_CLI=""
 ARG OPENCLAW_DOCKER_GPG_FINGERPRINT="9DC858229FC7DD38854AE2D88D81803C0EBFCD88"
-RUN --mount=type=cache,id=openclaw-bookworm-apt-cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,id=openclaw-bookworm-apt-lists,target=/var/lib/apt,sharing=locked \
+RUN --mount=type=cache,id=s/73d1f49a-b92c-429e-a79e-0151576b0875-/var/cache/apt,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,id=s/73d1f49a-b92c-429e-a79e-0151576b0875-/var/lib/apt,target=/var/lib/apt,sharing=locked \
     if [ -n "$OPENCLAW_INSTALL_DOCKER_CLI" ]; then \
       apt-get update && \
       DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
